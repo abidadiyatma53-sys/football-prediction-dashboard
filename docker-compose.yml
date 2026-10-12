@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # SERVICE 1: FastAPI Quantitative Prediction & Odds REST API
+  # Accessible at: http://localhost:8000 (Swagger docs at http://localhost:8000/docs)
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football-pipeline-api
+    restart: unless-stopped
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8000
+      - ODDS_API_KEY=${ODDS_API_KEY:-}
+      - FOOTBALL_DATA_API_TOKEN=${FOOTBALL_DATA_API_TOKEN:-}
+    volumes:
+      # Persistent SQLite ledger & fixture cache storage
+      - pipeline_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ============================================================================
+  # SERVICE 2: Streamlit Interactive Web Analytics & Radar Dashboard
+  # Accessible at: http://localhost:8501
+  # ============================================================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football-pipeline-dashboard
+    restart: unless-stopped
+    command: ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ODDS_API_KEY=${ODDS_API_KEY:-}
+      - FOOTBALL_DATA_API_TOKEN=${FOOTBALL_DATA_API_TOKEN:-}
+    volumes:
+      - pipeline_data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ============================================================================
+  # SERVICE 3: Background Matchday Sync & Auto-Settlement Worker
+  # Periodically updates live bookmaker odds and settles completed matches.
+  # Run with: docker compose --profile full up
+  # ============================================================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football-pipeline-scheduler
+    restart: unless-stopped
+    profiles:
+      - full
+      - scheduler
+    command: >
+      sh -c "
+      echo '[Worker] Starting periodic matchday sync and settlement daemon...';
+      while true; do
+        echo '[Worker] Scanning live odds and syncing +EV value bets...';
+        python sync_live_odds.py --commit-to-db;
+        echo '[Worker] Reconciling actual match scores against pending predictions...';
+        python settle_predictions.py --auto;
+        echo '[Worker] Cycle complete. Sleeping for 6 hours (21600s)...';
+        sleep 21600;
+      done
+      "
+    volumes:
+      - pipeline_data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  # Persistent volume preserving SQLite database (predictions_ledger.db) across container restarts
+  pipeline_data:
+    driver: local

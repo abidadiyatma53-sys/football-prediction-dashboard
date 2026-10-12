@@ -1,0 +1,24 @@
+# Core ML & Data Processing
+numpy==2.5.3
+pandas==3.0.6
+scipy==1.18.1
+scikit-learn==1.9.1
+xgboost==3.4.1
+
+# Scraping & Ingestion
+requests==2.34.2
+beautifulsoup4>=4.12.0
+
+# Visualization & Charts
+matplotlib==3.11.2
+seaborn==0.13.2
+plotly==7.1.0
+
+# Interactive Web Dashboard
+streamlit==1.64.0
+
+# Production REST API
+fastapi==0.141.1
+uvicorn==0.54.0
+pydantic==2.13.5
+httpx==0.28.1

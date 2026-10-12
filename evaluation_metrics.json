@@ -1,0 +1,40 @@
+{
+  "data_path": "football_clean_data.csv",
+  "chart_path": "evaluation_charts.png",
+  "train_ratio": 0.8,
+  "train_size": 5058,
+  "test_size": 1240,
+  "date_range": "2026-01-18 to 2026-09-20",
+  "metrics": {
+    "baseline": {
+      "mae_home": 1.041,
+      "mae_away": 0.892,
+      "rmse_home": 1.265,
+      "rmse_away": 1.108,
+      "log_loss": 1.0769,
+      "brier_score": 0.652,
+      "accuracy_1x2": 42.74,
+      "accuracy_exact": 11.69
+    },
+    "poisson": {
+      "mae_home": 0.975,
+      "mae_away": 0.887,
+      "rmse_home": 1.217,
+      "rmse_away": 1.109,
+      "log_loss": 1.0309,
+      "brier_score": 0.6163,
+      "accuracy_1x2": 49.68,
+      "accuracy_exact": 12.5
+    },
+    "xgboost": {
+      "mae_home": 0.965,
+      "mae_away": 0.839,
+      "rmse_home": 1.183,
+      "rmse_away": 1.063,
+      "log_loss": 1.0085,
+      "brier_score": 0.6021,
+      "accuracy_1x2": 50.48,
+      "accuracy_exact": 13.06
+    }
+  }
+}
